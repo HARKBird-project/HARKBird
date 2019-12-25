@@ -1,0 +1,905 @@
+#!/usr/bin/python
+from PySide import QtCore, QtGui
+import matplotlib
+
+matplotlib.use("Qt4Agg")
+matplotlib.rcParams["backend.qt4"] = "PySide"
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+
+import os
+import sys
+import json
+import copy
+import re
+import argparse
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../gui")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+
+import Tool
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import RectangleSelector
+from matplotlib.backends.backend_pdf import PdfPages
+
+import AnnotationGui
+import ColorGui
+
+
+def QColor2RGBA(QColor):
+    return map(lambda x: x / 255.0, list(QColor.toTuple()))
+
+
+FeatureName = ["iid", "sid", "time", "duration", "azimuth", "species"]
+
+
+class IntervalRectangle:
+    """
+    Download from https://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg14543.html
+    Written by Jorge Scandaliaris
+
+    Draggable and resizeable rectangle with the animation blit techniques.
+    Based on example code at http://matplotlib.sourceforge.net/users/event_handling.html
+    If *allow_resize* is *True* the recatngle can be resized by dragging its
+    lines. *border_tol* specifies how close the pointer has to be to a line for
+    the drag to be considered a resize operation. Dragging is still possible by
+    clicking the interior of the rectangle. *fixed_aspect_ratio* determines if
+    the recatngle keeps its aspect ratio during resize operations.
+    """
+
+    lock = None  # only one can be animated at a time
+    Selected = []
+    IsRefleshed = False
+    History = []
+
+    def __init__(self, window, data, rect, border_tol=0.15):
+        self.rect = rect
+        self.border_tol = border_tol
+        self.press = None
+        self.background = None
+
+        self.window = window
+        self.data = data
+        self.data["iid"] = eval(self.data["iid"])
+        self.data["sid"] = eval(self.data["sid"])
+        self.data["time"] = eval(self.data["time"])
+        self.data["duration"] = eval(self.data["duration"])
+        self.data["azimuth"] = eval(self.data["azimuth"])
+        self.data["species"] = self.data["species"]
+
+    def connect(self):
+        'connect to all the events we need'
+        self.cidpress = self.rect.figure.canvas.mpl_connect('button_press_event', self.on_press)
+        self.cidrelease = self.rect.figure.canvas.mpl_connect('button_release_event', self.on_release)
+        self.cidmotion = self.rect.figure.canvas.mpl_connect('motion_notify_event', self.on_motion)
+
+    def on_press(self, event):
+        'on button press we will see if the mouse is over us and store some data'
+        if event.inaxes != self.rect.axes or event.button != 1 or event.dblclick:
+            return
+
+        self.reflesh(event)
+
+        if self not in IntervalRectangle.Selected:
+            return
+
+        # print 'event contains', self.rect.xy
+        x0, y0 = self.rect.xy
+        w0, h0 = self.rect.get_width(), self.rect.get_height()
+        self.press = x0, y0, w0, h0, event.xdata, event.ydata
+
+        if IntervalRectangle.lock is not self:
+            return
+
+        # draw everything but the selected rectangle and store the pixel buffer
+        canvas = self.rect.figure.canvas
+        axes = self.rect.axes
+        self.rect.set_animated(True)
+        canvas.draw()
+        self.background = canvas.copy_from_bbox(self.rect.axes.bbox)
+
+        # now redraw just the rectangle
+        axes.draw_artist(self.rect)
+
+        # and blit just the redrawn area
+        canvas.blit(axes.bbox)
+
+    def on_motion(self, event):
+        'on motion we will move the rect if the mouse is over us'
+        if event.inaxes != self.rect.axes or event.button != 1 or event.dblclick:
+            return
+
+        if self not in IntervalRectangle.Selected:
+            return
+
+        x0, y0, w0, h0, xpress, ypress = self.press
+        self.dx = event.xdata - xpress
+        self.dy = event.ydata - ypress
+
+        if IntervalRectangle.lock is not self:
+            self.rect.set_x(x0 + self.dx)
+            self.rect.set_y(y0 + self.dy)
+        else:
+            self.update_rect(len(IntervalRectangle.Selected) == 1)
+
+            canvas = self.rect.figure.canvas
+            axes = self.rect.axes
+            # restore the background region
+            canvas.restore_region(self.background)
+
+            # redraw just the current rectangle
+            axes.draw_artist(self.rect)
+
+            # blit just the redrawn area
+            canvas.blit(axes.bbox)
+
+    def on_release(self, event):
+        'on release we reset the press data'
+        if self not in IntervalRectangle.Selected:
+            return
+
+        if self.window.CheckData("time", self.rect.get_x()) and \
+                self.window.CheckData("duration", self.rect.get_width()) and \
+                self.window.CheckData("azimuth", self.rect.get_y() + self.rect.get_height() / 2.0):
+
+            IntervalRectangle.History.append({"interval": self, "data": copy.copy(self.data)})
+            self.data["time"] = self.rect.get_x()
+            self.data["duration"] = self.rect.get_width()
+            self.data["azimuth"] = self.rect.get_y() + self.rect.get_height() / 2.0
+
+        else:
+            self.rect.set_x(self.data["time"])
+            self.rect.set_width(self.data["duration"])
+            self.rect.set_y(self.data["azimuth"] - self.rect.get_height() / 2.0)
+            self.rect.figure.canvas.draw()
+
+        self.press = None
+        IntervalRectangle.Selected.remove(self)
+
+        if not IntervalRectangle.Selected:
+            self.window.RefleshHistory({"type": "mod", "interval": [x["interval"] for x in IntervalRectangle.History],
+                                        "data": copy.copy([x["data"] for x in IntervalRectangle.History]),
+                                        "color": None})
+            IntervalRectangle.History = []
+
+        if IntervalRectangle.lock is not self:
+            return
+
+        self.window.ShowInformation()
+        IntervalRectangle.lock = None
+        IntervalRectangle.IsRefleshed = False
+
+        # turn off the rect animation property and reset the background
+        self.rect.set_animated(False)
+        self.background = None
+
+        # redraw the full figure
+        self.rect.figure.canvas.draw()
+
+    def disconnect(self):
+        'disconnect all the stored connection ids'
+        self.rect.figure.canvas.mpl_disconnect(self.cidpress)
+        self.rect.figure.canvas.mpl_disconnect(self.cidrelease)
+        self.rect.figure.canvas.mpl_disconnect(self.cidmotion)
+
+    def update_rect(self, allow_resize):
+        x0, y0, w0, h0, xpress, ypress = self.press
+        dx, dy = self.dx, self.dy
+        bt = self.border_tol
+        if (not allow_resize or
+                (abs(x0 + np.true_divide(w0, 2) - xpress) < np.true_divide(w0, 2) - bt * w0 and
+                         abs(y0 + np.true_divide(h0, 2) - ypress) < np.true_divide(h0, 2) - bt * h0)):
+            self.rect.set_x(x0 + dx)
+            self.rect.set_y(y0 + dy)
+
+        elif abs(x0 - xpress) < bt * w0:
+            self.rect.set_x(x0 + dx)
+            self.rect.set_width(w0 - dx)
+
+        elif abs(x0 + w0 - xpress) < bt * w0:
+            self.rect.set_width(w0 + dx)
+
+        elif abs(y0 - ypress) < bt * h0:
+            self.rect.set_x(x0 + dx)  # add
+            self.rect.set_y(y0 + dy)
+
+    def reflesh(self, event):
+        if IntervalRectangle.IsRefleshed:
+            return
+
+        for i in self.window.Intervals:
+            contains, attrd = i.rect.contains(event)
+            if contains:
+                IntervalRectangle.lock = i
+                break
+
+        if IntervalRectangle.lock == None:
+            IntervalRectangle.Selected = []
+        elif IntervalRectangle.lock in self.window.Selected:
+            IntervalRectangle.Selected = self.window.Selected
+            IntervalRectangle.IsRefleshed = True
+        else:
+            IntervalRectangle.Selected = [IntervalRectangle.lock]
+            IntervalRectangle.IsRefleshed = True
+
+        self.window.ChangeSelected(IntervalRectangle.Selected)
+
+
+class ColorDialog(QtGui.QDialog, ColorGui.Ui_Dialog):
+    def __init__(self, Colors, parent=None):
+        super(ColorDialog, self).__init__(parent)
+        self.Colors = {}
+        self.setupUi(self)
+        self.ShowColor(Colors)
+        self.ColorTable.cellDoubleClicked.connect(self.ChangeColor)
+
+    def ShowColor(self, Colors):
+        self.ColorTable.setRowCount(len(Colors))
+        self.ColorTable.setHorizontalHeaderLabels(["Species", "Color"])
+        self.ColorTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.ColorTable.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        print("hoge")
+
+        for i, (s, c) in enumerate(Colors.iteritems()):
+            Item = QtGui.QTableWidgetItem(s)
+            Item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.ColorTable.setItem(i, 0, Item)
+
+            Item = QtGui.QTableWidgetItem()
+            Item.setFlags(QtCore.Qt.ItemIsEnabled)
+            r, g, b, a = c
+            c = QtGui.QColor.fromRgbF(r, g, b, a)
+            self.Colors[s] = c
+            Item.setBackground(c)
+            self.ColorTable.setItem(i, 1, Item)
+
+    def ChangeColor(self, Row, Column):
+        if not Column:
+            return 0
+
+        s = self.ColorTable.item(Row, 0).text()
+        c = self.Colors[s]
+
+        NewColor = QtGui.QColorDialog.getColor(initial=c, parent=self)
+        if not NewColor.isValid():
+            return 1
+
+        self.Colors[s] = NewColor
+        self.ColorTable.item(Row, 1).setBackground(NewColor)
+
+    @staticmethod
+    def SetColor(Parent, Colors):
+        Dialog = ColorDialog(Colors, Parent)
+        Result = Dialog.exec_()
+        Colors = {k: QColor2RGBA(v) for k, v in Dialog.Colors.iteritems()}
+        return Colors, Result == QtGui.QDialog.Accepted
+
+
+class MainWindow(QtGui.QMainWindow, AnnotationGui.Ui_MainWindow):
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+        self.setupUi(self)
+        self.Intervals = []
+        self.FolderName = args.foldername
+        self.Spectrogram = None
+
+        self.AddGraph()
+        self.SetSignals()
+        self.LoadLocalizedFolder()
+
+    def AddGraph(self):
+        self.fig, self.ax, self.ax2 = Tool.MakeFigure()
+        self.graph = FigureCanvas(self.fig)
+
+        self.graph.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.graph.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.graph.setFocus()
+        self.PlotDomain.addWidget(self.graph)
+
+    def SetSignals(self):
+        self.TimeScroll.valueChanged.connect(self.TimeChange)
+        self.TimeScroll.rangeChanged.connect(self.TimeChange)
+        self.Information.cellChanged.connect(self.UpdateInformation)
+        self.PlayButton.clicked.connect(self.Play)
+        self.PlaySepButton.clicked.connect(self.PlaySep)
+        self.DeleteButton.clicked.connect(self.DeleteIntervals)
+        self.SaveButton.clicked.connect(self.SaveAnnotation)
+        self.LoadButton.clicked.connect(self.LoadAnnotation)
+        self.UndoButton.clicked.connect(self.Undo)
+        self.SaveFigureButton.clicked.connect(self.SaveFigure)
+        self.ColorButton.clicked.connect(self.SetColor)
+
+        self.cid = self.ax.figure.canvas.mpl_connect("button_press_event", self.on_dbclick)
+        self.ts = self.MakeToggleSelector(self.ax)
+        self.tid = self.ax.figure.canvas.mpl_connect("key_press_event", self.ts)
+        self.zid = self.fig.canvas.mpl_connect("scroll_event", self.ZoomChange)
+
+    def InitGraph(self, Length):
+        self.InitAnnotation()
+        self.Zoom = 1.0
+        self.Length = Length
+        self.SegmentChange()
+
+    def LoadLocalizedFolder(self):
+        if self.FolderName is None or not os.path.isdir(self.FolderName):
+            self.FolderName = QtGui.QFileDialog.getExistingDirectory(self, "Choose 'localized_' directory",
+                                                                     os.path.expanduser("~"))
+        if not self.FolderName:
+            sys.exit()
+
+        if self.FolderName[-1] != "/":
+            self.FolderName += "/"
+
+        try:
+            self.SourceWav = Tool.LoadSourceWav(self, self.FolderName)
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot load source wav\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            sys.exit()
+
+        Length = Tool.GetLength(self.SourceWav)
+        self.InitGraph(Length)
+
+        try:
+            self.RemixWav = Tool.MakeRemixWav(self.FolderName, self.SourceWav)
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot make remix wav\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            sys.exit()
+
+        Tool.ShowSpecMUSIC(self.ax, self.ax2, self.RemixWav, self.FolderName, self.Length)
+
+    def SegmentChange(self):
+        self.Segment = self.Length / (self.Zoom + 1.0)
+        self.Time = self.Segment
+        self.LimChange()
+        self.TimeScroll.setValue(0)
+        self.TimeScroll.setMaximum(self.Zoom - 1)
+
+    def ZoomChange(self, event):
+        if event.button == "up":
+            self.Zoom += 1.0
+        elif event.button == "down":
+            self.Zoom -= 1.0
+
+        if (self.Zoom < 1.0):
+            self.Zoom = 1.0
+
+        self.SegmentChange()
+        self.Status.showMessage("Zoom:" + str(self.Zoom))
+
+    def TimeChange(self, Value):
+        self.Time = (1 + Value) * self.Segment
+        self.LimChange()
+
+    def LimChange(self):
+        self.ax.set_xlim([self.Time - self.Segment, self.Time + self.Segment])
+        self.fig.canvas.draw_idle()
+
+    def InitAnnotation(self):
+        self.InitInterval()
+        self.InitSelect()
+        self.InitHistory()
+        self.InitInformation()
+
+        self.fig.canvas.draw_idle()
+
+    def LoadAnnotation(self):
+        (FileName, Ext) = QtGui.QFileDialog.getOpenFileName(self, "Choose annotation file", self.FolderName,
+                                                            filter="JSON file (*.json)")
+
+        if not FileName:
+            return 0
+
+        elif FileName[-4:] == "json":
+            try:
+                f = open(FileName, "r")
+                Data = json.load(f)
+                f.close()
+            except Exception as e:
+                QtGui.QMessageBox.critical(self, "Critical issue", "Cannot load JSON file\n" + str(e.message),
+                                           QtGui.QMessageBox.Ok)
+                return 1
+
+        self.InitAnnotation()
+
+        IntervalData, ColorData = Data
+        self.Colors = ColorData
+
+        for d in IntervalData:
+            self.MakeInterval(d)
+
+    def SaveAnnotation(self):
+        (FileName, Ext) = QtGui.QFileDialog.getSaveFileName(self, "Choose save directory and filename", self.FolderName,
+                                                            filter="JSON file (*.json);;CSV file (*.csv)")
+
+        if not FileName:
+            return 0
+
+        elif FileName[-5:] == ".json":
+            Ext = ".json"
+
+        elif FileName[-4:] == ".csv":
+            Ext = ".csv"
+
+        else:
+            ms = re.compile(r"\(.+?\)")
+            Ext = ms.search(Ext)
+            Ext = Ext.group(0)[2:-1]
+            FileName += Ext
+
+        SepData = [{key: str(value) for key, value in i.data.iteritems()} for i in self.Intervals]
+        if Ext == ".json":
+            try:
+                JSONFile = open(FileName, "w")
+                JSONData = [SepData, self.Colors]
+                json.dump(JSONData, JSONFile, indent=4)
+                JSONFile.close()
+            except Exception as e:
+                QtGui.QMessageBox.critical(self, "Critical issue", "Cannot save JSON file\n" + str(e.message),
+                                           QtGui.QMessageBox.Ok)
+                return 1
+
+        elif Ext == ".csv":
+            try:
+                f = open(FileName, "w")
+                f.write("\t".join(FeatureName) + "\n")
+                for d in SepData:
+                    Tmp = [d[k] for k in FeatureName]
+                    f.write("\t".join(Tmp) + "\n")
+                f.close()
+            except Exception as e:
+                QtGui.QMessageBox.critical(self, "Critical issue", "Cannot save CSV file\n" + str(e.message),
+                                           QtGui.QMessageBox.Ok)
+                return 1
+
+    def InitInterval(self):
+        for i in self.Intervals:
+            i.rect.remove()
+            del i
+
+        self.Intervals = []
+        self.Colors = {}
+
+    def MakeRectangle(self, ax, Data, color=None):
+        BH = 20
+        Rect = ax.bar(float(Data["time"]), BH, bottom=eval(Data["azimuth"]) - BH / 2.0, color=color,
+                      width=eval(Data["duration"]), linewidth=1.0, edgecolor="k", align="edge", picker=True)
+
+        return Rect
+
+    def MakeInterval(self, Data):
+        Rect = self.MakeRectangle(self.ax, Data)
+
+        IR = IntervalRectangle(self, Data, Rect[0])
+        IR.connect()
+        self.Intervals.append(IR)
+        self.AddSpecies(IR)
+
+        self.SaveFigureButton.setEnabled(True)
+        self.ColorButton.setEnabled(True)
+        self.SaveButton.setEnabled(True)
+
+    def AddInterval(self, X, Y):
+        Tmp = {}
+        if self.Intervals:
+            Tmp["iid"] = str(np.max([i.data["iid"] for i in self.Intervals]) + 1)
+        else:
+            Tmp["iid"] = "0"
+
+        Tmp["sid"] = "-1"
+        Tmp["time"] = str(X)
+        Tmp["duration"] = "4.0"
+        Tmp["azimuth"] = str(Y)
+        Tmp["species"] = "NOTI"
+
+        self.MakeInterval(Tmp)
+
+        self.RefleshHistory({"type": "add", "interval": self.Intervals[-1]})
+        self.ChangeSelected([self.Intervals[-1]])
+        self.Status.showMessage("Create a new item")
+
+    def AddSpecies(self, Interval):
+        Species = Interval.data["species"]
+
+        if Species not in self.Colors.keys():
+            while True:
+                Color = QtGui.QColorDialog.getColor(parent=self)
+                if Color.isValid():
+                    Color = QColor2RGBA(Color)
+                    break
+
+            self.Colors[Species] = Color
+
+        self.RecolorInterval(Interval)
+
+    def DeleteSpecies(self, Species):
+        if Species not in [i.data["species"] for i in self.Intervals]:
+            del self.Colors[Species]
+
+    def RecolorInterval(self, Interval):
+        Interval.rect.set_fc(self.Colors[Interval.data["species"]])
+        self.fig.canvas.draw_idle()
+
+    def RecolorAllIntervals(self):
+        for i in self.Intervals:
+            i.rect.set_fc(self.Colors[i.data["species"]])
+
+        self.fig.canvas.draw_idle()
+
+    def InitInformation(self):
+        self.Information.cellChanged.disconnect()
+
+        for i in range(len(FeatureName)):
+            self.Information.item(i, 1).setText("")
+
+        self.Information.cellChanged.connect(self.UpdateInformation)
+
+    def ShowInformation(self):
+        if len(self.Selected) != 1:
+            self.InitInformation()
+            return 1
+
+        self.Information.cellChanged.disconnect(self.UpdateInformation)
+
+        for i, f in enumerate(FeatureName):
+            self.Information.item(i, 1).setText(str(self.Selected[0].data[f]))
+
+        self.Information.cellChanged.connect(self.UpdateInformation)
+
+    def CheckData(self, Key, Value):
+        Result = True
+
+        if Key in ["time", "duration"]:
+            try:
+                float(Value)
+            except:
+                Result = False
+            else:
+                if not (0 < float(Value) and float(Value) < self.Length):
+                    Result = False
+
+        elif Key == "azimuth":
+            try:
+                float(Value)
+            except:
+                Result = False
+            else:
+                if not (-180 <= float(Value) and float(Value) <= 180):
+                    Result = False
+
+        elif Key in ["species", "iid", "sid"]:
+            pass
+
+        else:
+            QtGui.QMessageBox.critical(self, "Critical issue", "There is no applicable key", QtGui.QMessageBox.Ok)
+
+        if not Result:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Invalid value", QtGui.QMessageBox.Ok)
+
+        return Result
+
+    def UpdateInformation(self, Row, Column):
+        if not self.Selected:
+            return 0
+
+        Key = self.Information.item(Row, 0).text()
+        Value = self.Information.item(Row, Column).text()
+        Data = self.Selected[0].data
+
+        if not self.CheckData(Key, Value):
+            self.Information.item(Row, Column).setText(str(Data[Key]))
+            return 1
+
+        self.RefleshHistory({"type": "mod", "interval": [self.Selected[0]], "data": [copy.copy(Data)],
+                             "color": copy.deepcopy(self.Colors)})
+
+        Species = Data["species"]
+
+        if Key != "species":
+            Data[Key] = eval(Value)
+        else:
+            Data[Key] = Value
+
+        self.UpdateInterval(self.Selected[0])
+
+        self.AddSpecies(self.Selected[0])
+        self.DeleteSpecies(Species)
+
+    def UpdateInterval(self, Interval):
+        Interval.rect.set_x(Interval.data["time"])
+        Interval.rect.set_width(Interval.data["duration"])
+        Interval.rect.set_y(Interval.data["azimuth"] - Interval.rect.get_height() / 2.0)
+
+        self.fig.canvas.draw_idle()
+
+    def DeleteIntervals(self):
+        Data = []
+        Colors = copy.deepcopy(self.Colors)
+        Number = len(self.Selected)
+        for s in self.Selected:
+            Data.append(copy.copy(s.data))
+            Species = s.data["species"]
+
+            s.rect.remove()
+            self.Intervals.remove(s)
+            del s
+            self.DeleteSpecies(Species)
+
+        self.RefleshHistory({"type": "del", "data": Data, "color": Colors})
+        self.ChangeSelected([])
+        self.InitInformation()
+        self.Status.showMessage("Delete " + str(Number) + " items")
+
+        if not self.Intervals:
+            self.SaveFigureButton.setEnabled(False)
+            self.ColorButton.setEnabled(False)
+            self.SaveButton.setEnabled(False)
+
+        self.fig.canvas.draw_idle()
+
+    def Play(self):
+        Data = self.Selected[0].data
+
+        Cmd = ["sox", self.SourceWav]
+        Trim = ["trim", str(Data["time"]), str(Data["duration"])]
+
+        if os.name == "posix":
+            Cmd += ["-d"] + Trim
+        elif os.name == "nt":
+            Cmd += ["-t", "waveaudio"] + Trim
+        Tool.ExecuteProcess("Play", Cmd, False)
+
+    def PlaySep(self):
+        Data = self.Selected[0].data
+
+        if Data["sid"] < 0:
+            QtGui.QMessageBox.critical(self, "Critical issue", "There is no applicable separated wav",
+                                       QtGui.QMessageBox.Ok)
+            return 1
+
+        FileName = self.FolderName + "sep_" + str(Data["sid"]) + ".wav"
+        Cmd = ["sox", FileName]
+
+        if os.name == "posix":
+            Cmd += ["-d"]
+        elif os.name == "nt":
+            Cmd += ["-t", "waveaudio"]
+        Tool.ExecuteProcess("Play Separation", Cmd, False)
+
+        if self.Spectrogram is None:
+            self.Spectrogram = plt.figure(figsize=(6, 4))
+            self.Spectrogram.canvas.set_window_title("Spectrogram")
+
+        ax = self.Spectrogram.add_subplot(1, 1, 1)
+        Tool.ShowSpectrogram(ax, FileName, True)
+        self.Spectrogram.show()
+
+    def on_dbclick(self, event):
+        X = event.xdata
+        Y = event.ydata
+
+        if not (event.dblclick and event.inaxes is self.ax and self.CheckData("time", X + 5)
+                and event.button == 1 and self.CheckData("azimuth", Y)):
+            return 1
+
+        self.AddInterval(X, Y)
+
+    def MakeToggleSelector(self, ax):
+        '''
+        Download from http://matplotlib.org/examples/widgets/rectangle_selector.html
+        '''
+
+        def line_select_callback(eclick, erelease):
+            'eclick and erelease are the press and release events'
+            x1, y1 = eclick.xdata, eclick.ydata
+            x2, y2 = erelease.xdata, erelease.ydata
+
+            p1 = np.array([x1, y1])
+            p2 = np.array([x2, y2])
+            d = np.linalg.norm(p2 - p1)
+            if d < 1.0:
+                return 1
+
+            self.PickSelected(x1, x2, y1, y2)
+
+        def toggle_selector(event):
+            if event.key in ['Q', 'q'] and toggle_selector.RS.active:
+                self.Status.showMessage(' RectangleSelector deactivated.')
+                toggle_selector.RS.set_active(False)
+            if event.key in ['A', 'a'] and not toggle_selector.RS.active:
+                self.Status.showMessage(' RectangleSelector activated.')
+                toggle_selector.RS.set_active(True)
+
+        toggle_selector.RS = RectangleSelector(ax, line_select_callback,
+                                               drawtype='box', useblit=True,
+                                               button=[3],  # Only use right button
+                                               minspanx=5, minspany=5,
+                                               spancoords='pixels')
+
+        return toggle_selector
+
+    def PickSelected(self, x1, x2, y1, y2):
+        Selected = []
+        if x1 > x2:
+            x1, x2 = x2, x1
+        if y1 > y2:
+            y1, y2 = y2, y1
+
+        for i in self.Intervals:
+            x, y = i.data["time"], i.data["azimuth"]
+            if (x1 <= x and x <= x2 and y1 <= y and y <= y2):
+                Selected.append(i)
+
+        self.ChangeSelected(Selected)
+
+    def InitSelect(self):
+        self.Selected = []
+        self.ChangeSelected([])
+
+    def ChangeSelected(self, Selected):
+        for s in self.Selected:
+            s.rect.set_linewidth(1.0)
+
+        for s in Selected:
+            s.rect.set_linewidth(3.0)
+
+        self.Selected = copy.copy(Selected)
+
+        if not self.Selected:
+            self.InitInformation()
+            self.DeleteButton.setEnabled(False)
+            self.PlayButton.setEnabled(False)
+            self.PlaySepButton.setEnabled(False)
+
+        elif len(self.Selected) == 1:
+            self.ShowInformation()
+            self.DeleteButton.setEnabled(True)
+            self.PlayButton.setEnabled(True)
+            self.PlaySepButton.setEnabled(True)
+
+        else:
+            self.InitInformation()
+            self.DeleteButton.setEnabled(True)
+
+        self.Status.showMessage(str(len(self.Selected)) + " items Selected")
+        self.fig.canvas.draw_idle()
+
+    def InitHistory(self):
+        self.History = None
+        self.UndoButton.setEnabled(False)
+
+    def RefleshHistory(self, Data):
+        self.UndoButton.setEnabled(True)
+        self.History = Data
+
+    def Undo(self):
+        if self.History["type"] == "mod":
+            if self.History["color"] is not None:
+                self.Colors = self.History["color"]
+
+            for Interval, Data in zip(self.History["interval"], self.History["data"]):
+                Interval.data = Data
+                self.UpdateInterval(Interval)
+                self.RecolorInterval(Interval)
+
+        elif self.History["type"] == "add":
+            self.ChangeSelected([self.History["interval"]])
+            self.DeleteIntervals()
+
+        elif self.History["type"] == "del":
+            self.Colors = self.History["color"]
+            for d in self.History["data"]:
+                d = dict(zip(d.keys(), map(str, d.values())))
+                self.MakeInterval(d)
+
+        elif self.History["type"] == "color":
+            self.Colors = self.History["color"]
+            self.RecolorAllIntervals()
+
+        self.Status.showMessage("Undo")
+        self.InitHistory()
+
+    def SaveFigure(self):
+        Number, Ok = QtGui.QInputDialog.getInteger(self, "Input Dialog",
+                                                   "Please input the number to divide a figure by", minValue=1)
+
+        if not Ok:
+            return 0
+
+        Segment = self.Length / Number
+
+        (FileName, Ext) = QtGui.QFileDialog.getSaveFileName(self, "Choose save directory and filename",
+                                                            self.FolderName,
+                                                            filter="PDF file (*.pdf);;PNG file (*.png)")
+        if not FileName:
+            return 0
+
+        elif FileName[-4:] == ".pdf":
+            Ext = ".pdf"
+
+        elif FileName[-4:] == ".png":
+            Ext = ".png"
+
+        else:
+            ms = re.compile(r"\(.+?\)")
+            Ext = ms.search(Ext)
+            Ext = Ext.group(0)[2:-1]
+            FileName += Ext
+
+        if Ext == ".pdf":
+            Pdf = PdfPages(FileName)
+
+        fig, ax, ax2 = Tool.MakeFigure()
+
+        Tool.ShowSpecMUSIC(ax, ax2, self.RemixWav, self.FolderName, self.Length)
+        for i in self.Intervals:
+            Data = {key: str(value) for key, value in i.data.iteritems()}
+            self.MakeRectangle(ax, Data, color=self.Colors[Data["species"]])
+
+        for i in range(Number + 1):
+            if i < Number:
+                ax.set_xlim([Segment * i, Segment * (i + 1)])
+            else:
+                fig.clear()
+                ax = fig.add_subplot(1, 1, 1)
+                ax.set_axis_off()
+                for s, c in self.Colors.iteritems():
+                    ax.plot([], label=s, color=c, linewidth=10.0)
+
+                # Download from Stack Overflow https://stackoverflow.com/questions/32037157/control-matplotlib-legend-box-width-for-wrapping
+                # Written by Jean-Sebastien
+                # Modified by HARKBird developer team
+                # License is CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0/
+                NCol = 1
+                OldWidth = 0.0
+                Renderer = fig.canvas.get_renderer()
+                while True:
+                    Legend = ax.legend(loc="upper center", bbox_to_anchor=(0.0, 1.0, 1.0, 0.0), prop={"size": 12},
+                                       borderpad=1, ncol=NCol)
+                    fig.canvas.draw()
+                    LegendBox = Legend.get_window_extent(Renderer).inverse_transformed(ax.transAxes)
+
+                    if OldWidth == LegendBox.width:
+                        break
+
+                    if LegendBox.width < 1:
+                        NCol += 1
+                        OldWidth = LegendBox.width
+
+                    else:
+                        NCol -= 1
+                        Legend = ax.legend(loc="upper center", bbox_to_anchor=(0.0, 1.0, 1.0, 0.0), prop={"size": 12},
+                                           borderpad=1, ncol=NCol, mode="expand")
+                        break
+
+            if Ext == ".pdf":
+                Pdf.savefig(fig)
+            elif Ext == ".png":
+                fig.savefig(FileName[:-4] + "_" + str(i + 1) + ".png")
+
+        if Ext == ".pdf":
+            Pdf.close()
+
+        fig.clear()
+        del fig
+
+    def SetColor(self):
+        Colors, Result = ColorDialog.SetColor(self, self.Colors)
+        if not Result:
+            return 0
+
+        self.RefleshHistory({"type": "color", "color": copy.deepcopy(self.Colors)})
+        self.Colors = Colors
+        self.RecolorAllIntervals()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Start Annotation")
+    parser.add_argument("-f", "--foldername", type=str, help="foldername")
+    args = parser.parse_args()
+
+    app = QtGui.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())

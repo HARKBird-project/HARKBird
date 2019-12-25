@@ -1,0 +1,1127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>800</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>800</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>HARKBird</string>
+  </property>
+  <widget class="QWidget" name="CentralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>800</width>
+     <height>600</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>800</width>
+     <height>600</height>
+    </size>
+   </property>
+   <widget class="QTabWidget" name="TabWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>781</width>
+      <height>581</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>0</height>
+     </size>
+    </property>
+    <property name="focusPolicy">
+     <enum>Qt::NoFocus</enum>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <property name="movable">
+     <bool>false</bool>
+    </property>
+    <widget class="QWidget" name="RecTab">
+     <attribute name="title">
+      <string>Recording</string>
+     </attribute>
+     <widget class="QFrame" name="RecFrame">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>381</width>
+        <height>531</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
+      </property>
+      <widget class="QListWidget" name="RecList">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>70</y>
+         <width>361</width>
+         <height>451</height>
+        </rect>
+       </property>
+       <property name="currentRow">
+        <number>-1</number>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="RecFolderPath">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>301</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>301</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="placeholderText">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QToolButton" name="RecFolderBrowser">
+       <property name="geometry">
+        <rect>
+         <x>310</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="RecLable0">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>191</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Working directory</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="RecReload">
+       <property name="geometry">
+        <rect>
+         <x>340</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="Resource.qrc">
+         <normaloff>:/Reload.png</normaloff>:/Reload.png</iconset>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QPushButton" name="RecPlay">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>350</y>
+        <width>351</width>
+        <height>91</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>26</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Play</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RecLabel1">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>20</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>File name</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RecFileName">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>50</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>YYYYMMDD_HHMMSS.wav</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RecLabel2">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>20</y>
+        <width>61</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Prefix</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RecPrefix">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>50</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>location</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="RecRecording">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>250</y>
+        <width>351</width>
+        <height>91</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>26</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Recording</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+      <property name="autoRepeat">
+       <bool>false</bool>
+      </property>
+      <property name="autoDefault">
+       <bool>false</bool>
+      </property>
+      <property name="default">
+       <bool>false</bool>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RecLabel5">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>180</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Duration</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RecDuration">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>210</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="inputMask">
+       <string/>
+      </property>
+      <property name="maxLength">
+       <number>32767</number>
+      </property>
+      <property name="placeholderText">
+       <string>3600</string>
+      </property>
+      <property name="cursorMoveStyle">
+       <enum>Qt::LogicalMoveStyle</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RecLabel3">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>100</y>
+        <width>71</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Device</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RecDevice">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>130</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="inputMask">
+       <string/>
+      </property>
+      <property name="maxLength">
+       <number>32767</number>
+      </property>
+      <property name="placeholderText">
+       <string>plughw:1,0</string>
+      </property>
+      <property name="cursorMoveStyle">
+       <enum>Qt::LogicalMoveStyle</enum>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RecChannel">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>130</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="inputMask">
+       <string/>
+      </property>
+      <property name="maxLength">
+       <number>32767</number>
+      </property>
+      <property name="placeholderText">
+       <string>8</string>
+      </property>
+      <property name="cursorMoveStyle">
+       <enum>Qt::LogicalMoveStyle</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RecLabel4">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>100</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Channel</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="RecDivide">
+      <property name="geometry">
+       <rect>
+        <x>410</x>
+        <y>450</y>
+        <width>351</width>
+        <height>91</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>26</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Divide</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RecLabel6">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>180</y>
+        <width>81</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Interval</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RecInterval">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>210</y>
+        <width>171</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="inputMask">
+       <string/>
+      </property>
+      <property name="maxLength">
+       <number>32767</number>
+      </property>
+      <property name="placeholderText">
+       <string>600</string>
+      </property>
+      <property name="cursorMoveStyle">
+       <enum>Qt::LogicalMoveStyle</enum>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="LocTab">
+     <attribute name="title">
+      <string>Localization</string>
+     </attribute>
+     <widget class="QFrame" name="LocFrame0">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>381</width>
+        <height>531</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
+      </property>
+      <widget class="QListWidget" name="LocWorkDirList">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>70</y>
+         <width>361</width>
+         <height>451</height>
+        </rect>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::ExtendedSelection</enum>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectItems</enum>
+       </property>
+       <property name="currentRow">
+        <number>-1</number>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="LocWorkFolderPath">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>301</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>301</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="placeholderText">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QToolButton" name="LocWorkFolderBrowser">
+       <property name="geometry">
+        <rect>
+         <x>310</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="LocWorkLabel0">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>191</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Working directory</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="LocWorkDirReload">
+       <property name="geometry">
+        <rect>
+         <x>340</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="Resource.qrc">
+         <normaloff>:/Reload.png</normaloff>:/Reload.png</iconset>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QFrame" name="LocFrame1">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>10</y>
+        <width>371</width>
+        <height>301</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <widget class="QLineEdit" name="LocParamFolderPath">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>271</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="acceptDrops">
+        <bool>false</bool>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+       <property name="placeholderText">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QToolButton" name="LocParamFolderBrowser">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="LocParamLabel0">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>111</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Parameter</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="LocParamSave">
+       <property name="geometry">
+        <rect>
+         <x>310</x>
+         <y>40</y>
+         <width>51</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Save</string>
+       </property>
+      </widget>
+      <widget class="QTableWidget" name="LocParamTable">
+       <property name="geometry">
+        <rect>
+         <x>5</x>
+         <y>71</y>
+         <width>361</width>
+         <height>221</height>
+        </rect>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
+       <property name="columnCount">
+        <number>3</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderHighlightSections">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <column/>
+       <column/>
+       <column/>
+      </widget>
+     </widget>
+     <widget class="QLabel" name="LocLabel0">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>310</y>
+        <width>151</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Save directory</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::PlainText</enum>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="LocSaveFolderPath">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>340</y>
+        <width>341</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QToolButton" name="LocSaveFolderBrowser">
+      <property name="geometry">
+       <rect>
+        <x>740</x>
+        <y>340</y>
+        <width>27</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>...</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="LocLocalize">
+      <property name="geometry">
+       <rect>
+        <x>397</x>
+        <y>430</y>
+        <width>371</width>
+        <height>111</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>28</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Localize</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="LocLabel1">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>370</y>
+        <width>51</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Gain</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::PlainText</enum>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="LocGain">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>400</y>
+        <width>41</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>40</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="LocLabel2">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>370</y>
+        <width>71</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Option</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::PlainText</enum>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="LocConversion">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>400</y>
+        <width>221</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
+      </property>
+      <property name="text">
+       <string>Converte to 16k wav file</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="AnaTab">
+     <attribute name="title">
+      <string>Analysis</string>
+     </attribute>
+     <widget class="QFrame" name="AnaFlame">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>381</width>
+        <height>531</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
+      </property>
+      <widget class="QListWidget" name="AnaList">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>70</y>
+         <width>361</width>
+         <height>451</height>
+        </rect>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::ExtendedSelection</enum>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectItems</enum>
+       </property>
+       <property name="currentRow">
+        <number>-1</number>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="AnaFolderPath">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>301</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>301</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="placeholderText">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QToolButton" name="AnaFolderBrowser">
+       <property name="geometry">
+        <rect>
+         <x>310</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="AnaLabel0">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>191</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Working directory</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="AnaReload">
+       <property name="geometry">
+        <rect>
+         <x>340</x>
+         <y>40</y>
+         <width>27</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="Resource.qrc">
+         <normaloff>:/Reload.png</normaloff>:/Reload.png</iconset>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QLabel" name="AnaLabel1">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>20</y>
+        <width>221</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>PDF divided number</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="AnaPdfDivNum">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>50</y>
+        <width>31</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>1</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="AnaExportFiles">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>90</y>
+        <width>371</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>28</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Export files</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="AnaLabel2">
+      <property name="geometry">
+       <rect>
+        <x>620</x>
+        <y>20</y>
+        <width>81</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Degree</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="AnaDegree">
+      <property name="geometry">
+       <rect>
+        <x>620</x>
+        <y>50</y>
+        <width>41</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>20</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="AnaAnnotation">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>170</y>
+        <width>371</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>28</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Annotation</string>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+ </widget>
+ <resources>
+  <include location="Resource.qrc"/>
+ </resources>
+ <connections/>
+</ui>

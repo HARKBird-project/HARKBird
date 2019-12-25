@@ -1,0 +1,56 @@
+#!/usr/bin/python
+import os
+import shutil
+import subprocess
+import argparse
+
+parser = argparse.ArgumentParser(description="Start localization")
+parser.add_argument("-d", "--directory", required=True, type=str, help="directory")
+parser.add_argument("-f", "--filename", required=True, type=str, help="filename")
+parser.add_argument("-tf", "--transfunc", required=True, type=str, help="tfname")
+parser.add_argument("-c", "--convert", action="store_true", default=False, help="convert")
+parser.add_argument("-g", "--gain", type=str, help="gain")
+args = parser.parse_args()
+ScDir = os.path.abspath(os.path.dirname(__file__)) + "/"
+
+FileName = args.filename
+CpFiles = ["RecordSeparation.py", "transfer_function/" + args.transfunc, "parameter/parameter.json",
+           "network/network.n"]
+
+if args.convert or (args.gain is not None):
+    TmpFileName = FileName[:-4] + "_tmp.wav"
+
+    Cmd = ["sox", FileName]
+    if args.convert:
+        Cmd.append("-r")
+        Cmd.append("16000")
+
+    Cmd.append(TmpFileName)
+
+    if args.gain is not None:
+        Cmd.append("gain")
+        Cmd.append(args.gain)
+
+    subprocess.call(Cmd)
+    NewName = TmpFileName[:-8]
+    if args.convert:
+        NewName += "_16k"
+    if args.gain is not None:
+        NewName += "_gained"
+
+    NewName += ".wav"
+    os.rename(TmpFileName, NewName)
+    FileName = NewName
+
+OutDir = args.directory + "localized_" + os.path.basename(FileName) + "/"
+
+if not os.path.isdir(OutDir):
+    os.mkdir(OutDir)
+
+for f in CpFiles:
+    shutil.copyfile(ScDir + f, OutDir + os.path.basename(f))
+
+with open(OutDir + "sourcewav.txt", "w") as f:
+    f.write(FileName + "\n")
+
+subprocess.call(["batchflow", "network.n", FileName], cwd=OutDir)

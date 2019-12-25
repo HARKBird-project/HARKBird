@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1100</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>Annotation</string>
+  </property>
+  <widget class="QWidget" name="CentralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="mouseTracking">
+    <bool>false</bool>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QFrame" name="FrameLeft">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <layout class="QVBoxLayout" name="PlotDomain"/>
+       </item>
+       <item>
+        <widget class="QScrollBar" name="TimeScroll">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximum">
+          <number>0</number>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+         <property name="sliderPosition">
+          <number>0</number>
+         </property>
+         <property name="tracking">
+          <bool>true</bool>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="FrameRight">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>290</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <widget class="QPushButton" name="PlayButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>330</y>
+         <width>91</width>
+         <height>71</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Play</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="PlaySepButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>110</x>
+         <y>330</y>
+         <width>171</width>
+         <height>71</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Play
+Separation</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="LoadButton">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>131</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Load</string>
+       </property>
+      </widget>
+      <widget class="QTableWidget" name="Information">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>50</y>
+         <width>271</width>
+         <height>271</height>
+        </rect>
+       </property>
+       <property name="autoScroll">
+        <bool>false</bool>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::AllEditTriggers</set>
+       </property>
+       <property name="rowCount">
+        <number>6</number>
+       </property>
+       <property name="columnCount">
+        <number>2</number>
+       </property>
+       <attribute name="horizontalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderDefaultSectionSize">
+        <number>133</number>
+       </attribute>
+       <attribute name="horizontalHeaderHighlightSections">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderMinimumSectionSize">
+        <number>100</number>
+       </attribute>
+       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderDefaultSectionSize">
+        <number>40</number>
+       </attribute>
+       <attribute name="verticalHeaderHighlightSections">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderMinimumSectionSize">
+        <number>25</number>
+       </attribute>
+       <attribute name="verticalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <column/>
+       <column/>
+       <item row="0" column="0">
+        <property name="text">
+         <string>iid</string>
+        </property>
+        <property name="font">
+         <font>
+          <weight>50</weight>
+          <bold>false</bold>
+          <stylestrategy>PreferDefault</stylestrategy>
+          <kerning>true</kerning>
+         </font>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="0" column="1">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="1" column="0">
+        <property name="text">
+         <string>sid</string>
+        </property>
+        <property name="font">
+         <font>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="1" column="1">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="2" column="0">
+        <property name="text">
+         <string>time</string>
+        </property>
+        <property name="font">
+         <font>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="2" column="1">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="flags">
+         <set>ItemIsEditable|ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="3" column="0">
+        <property name="text">
+         <string>duration</string>
+        </property>
+        <property name="font">
+         <font>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="3" column="1">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="flags">
+         <set>ItemIsEditable|ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="4" column="0">
+        <property name="text">
+         <string>azimuth</string>
+        </property>
+        <property name="font">
+         <font>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="4" column="1">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="flags">
+         <set>ItemIsEditable|ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="5" column="0">
+        <property name="text">
+         <string>species</string>
+        </property>
+        <property name="flags">
+         <set>ItemIsEnabled</set>
+        </property>
+       </item>
+       <item row="5" column="1">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="flags">
+         <set>ItemIsEditable|ItemIsEnabled</set>
+        </property>
+       </item>
+      </widget>
+      <widget class="QPushButton" name="DeleteButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>100</x>
+         <y>410</y>
+         <width>91</width>
+         <height>61</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Delete</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="SaveButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>150</x>
+         <y>10</y>
+         <width>131</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Save</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="UndoButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>190</x>
+         <y>410</y>
+         <width>91</width>
+         <height>61</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Undo</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="SaveFigureButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>480</y>
+         <width>271</width>
+         <height>61</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Save Figure</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="ColorButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>410</y>
+         <width>91</width>
+         <height>61</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>20</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Color</string>
+       </property>
+      </widget>
+      <zorder>PlaySepButton</zorder>
+      <zorder>PlayButton</zorder>
+      <zorder>LoadButton</zorder>
+      <zorder>Information</zorder>
+      <zorder>DeleteButton</zorder>
+      <zorder>SaveButton</zorder>
+      <zorder>UndoButton</zorder>
+      <zorder>SaveFigureButton</zorder>
+      <zorder>ColorButton</zorder>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="Status"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

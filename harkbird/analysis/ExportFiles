@@ -1,0 +1,117 @@
+#!/usr/bin/python
+import argparse
+import pandas as pd
+import math
+import json
+import sys
+import os
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.cm as cm
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+
+import Tool
+
+OFFSET=0.5
+
+def MakeSepData(FolderName):
+    print "Make 'sourcelist.txt'"
+    Data = pd.read_csv(FolderName + "separated.csv", delimiter="\t")
+    Data["Time"] = Data["Time"].apply(lambda x: x / 100.0)
+    Data.loc[:, ["Theta", "Phi"]] = Data.loc[:, ["Theta", "Phi"]].applymap(lambda x: math.degrees(x))
+
+    SepData = []
+    SourceList = {}
+    f = open(FolderName + "sourcelist.csv", "w")
+    f.write("\t".join(["Sep", "Start time", "Start azimuth", "End time", "End azimuth"]) + "\n")
+    for name, data in Data.groupby("Sep"):
+        iid = name
+        sid = name
+        time = data.iloc[0]["Time"]-OFFSET
+        duration = data.iloc[-1]["Time"] - time +2.0*OFFSET
+        azimuth = data.iloc[0]["Phi"]
+        SepData.append({"iid": iid, "sid": sid, "time": time, "duration": duration, "azimuth": azimuth})
+        SourceList[name] = data
+
+        Tmp = [time, azimuth, time + duration, data.iloc[-1]["Phi"]]
+        Tmp = ["%3.2f" % x for x in Tmp]
+        Tmp = [str(sid)] + Tmp
+        f.write("\t".join(Tmp) + "\n")
+
+    f.close()
+    print "Finish"
+    return SepData, SourceList
+
+
+def Classification(SepData, Degree):
+    print "Classify sound sources based on degree"
+    Tmp = []
+    Species = set()
+    for data in SepData:
+        s = int((data["azimuth"] + 180) / Degree)
+        Species.add(s)
+        data["species"] = s
+        Tmp.append(data)
+
+    SepData = Tmp
+    ColorData = dict(zip(Species, map(tuple, cm.rainbow(np.linspace(0, 1, len(Species))))))
+    print "Finish"
+    return SepData, ColorData
+
+
+def SaveSepData(SepData, ColorData, FolderName):
+    print "Make 'sourceinfo' files"
+    SepData = [{k: str(v) for k, v in x.iteritems()} for x in SepData]
+    JSONData = [SepData, ColorData]
+    f = open(FolderName + "sourceinfo.json", "w")
+    json.dump(JSONData, f, indent=4)
+    f.close()
+
+    f = open(FolderName + "sourceinfo.csv", "w")
+    Header = ["iid", "sid", "time", "duration", "azimuth", "species"]
+    f.write("\t".join(Header) + "\n")
+    for d in SepData:
+        Tmp = [d[k] for k in Header]
+        f.write("\t".join(Tmp) + "\n")
+    f.close()
+    print "Finish"
+
+
+def MakeGraph(FolderName, SourceWav, PdfDivNum, SourceList):
+    print "Make 'visualized.pdf'"
+    RemixWav = Tool.MakeRemixWav(FolderName, SourceWav)
+    Length = Tool.GetLength(SourceWav)
+
+    fig, ax, ax2 = Tool.MakeFigure()
+    Tool.ShowSpecMUSIC(ax, ax2, RemixWav, FolderName, Length)
+
+    for name, data in SourceList.iteritems():
+        #ax.annotate(name, (data.iloc[0]["Time"], data.iloc[0]["Phi"] + 5), size=6, alpha=0.7)
+        ax.plot(data["Time"], data["Phi"], color="k", alpha=0.7)
+
+    Pdf = PdfPages(FolderName + "visualized.pdf")
+    Segment = Length / PdfDivNum
+    for i in range(PdfDivNum):
+        ax.set_xlim([Segment * i, Segment * (i + 1)])
+        Pdf.savefig(fig)
+    Pdf.close()
+    print "Finish"
+
+
+parser = argparse.ArgumentParser(description="Start making files")
+parser.add_argument("-f", "--foldername", required=True, type=str, help="foldername")
+parser.add_argument("-s", "--sourcewav", required=True, type=str, help="sourcewav")
+parser.add_argument("-n", "--pdfdivnum", required=True, type=int, help="pdfdivnum")
+parser.add_argument("-d", "--degree", required=True, type=float, help="degree")
+args = parser.parse_args()
+
+foldername = args.foldername
+sourcewav = args.sourcewav
+pdfdivnum = args.pdfdivnum
+degree = args.degree
+
+SepData, SourceList = MakeSepData(foldername)
+SepData, ColorData = Classification(SepData, degree)
+SaveSepData(SepData, ColorData, foldername)
+MakeGraph(foldername, sourcewav, pdfdivnum, SourceList)

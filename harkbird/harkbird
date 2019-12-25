@@ -1,0 +1,527 @@
+#!/usr/bin/python
+import os
+import sys
+import glob
+from datetime import datetime as dt
+import json
+import subprocess
+import argparse
+import Tool
+from PySide import QtCore, QtGui
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/gui")
+import HARKBirdGui
+import DivideGui
+
+QtCore.QTextCodec.setCodecForCStrings(QtCore.QTextCodec.codecForLocale())
+
+
+class DivideDialog(QtGui.QDialog, DivideGui.Ui_Dialog):
+    def __init__(self, parent=None):
+        super(DivideDialog, self).__init__(parent)
+        self.setupUi(self)
+        Validator = QtGui.QRegExpValidator(QtCore.QRegExp("[1-9][0-9]*$"), self)
+        self.DivideLineEdit.setValidator(Validator)
+
+    @staticmethod
+    def GetDivideNumber(Parent):
+        Dialog = DivideDialog(Parent)
+        Result = Dialog.exec_()
+        Number = Dialog.DivideLineEdit.text()
+        Unit = Dialog.DivideComboBox.currentText()
+        if not Number:
+            Result = QtGui.QDialog.Rejected
+        else:
+            Number = int(Number)
+
+        return Number, Unit, Result == QtGui.QDialog.Accepted
+
+
+class MainWindow(QtGui.QMainWindow, HARKBirdGui.Ui_MainWindow):
+    def SetDirFB(self, Directory, FolderPath):
+        TmpDir = QtGui.QFileDialog.getExistingDirectory(self, "Choose directory", Directory)
+        if not TmpDir:
+            TmpDir = Directory
+
+        if TmpDir[-1] != "/":
+            TmpDir += "/"
+
+        FolderPath.setText(TmpDir)
+
+        return TmpDir
+
+    def SetDirFP(self, Directory, FolderPath):
+        TmpDir = FolderPath.text()
+        if not os.path.isdir(TmpDir):
+            QtGui.QMessageBox.critical(self, "Critical issue", "Invalid path", QtGui.QMessageBox.Ok)
+            TmpDir = Directory
+
+        if TmpDir[-1] != "/":
+            TmpDir += "/"
+
+        FolderPath.setText(TmpDir)
+
+        return TmpDir
+
+    def LoadWavFile(self, WorkDir):
+        ItemList = [os.path.basename(f) for f in glob.glob(WorkDir + "/*.wav") if os.path.isfile(f)]
+        return ItemList
+
+    def LoadLocalizedFolder(self, WorkDir):
+        ItemList = [os.path.basename(f) for f in glob.glob(WorkDir + "/localized_*") if os.path.isdir(f)]
+        return ItemList
+
+    def SetItemToList(self, List, ItemList):
+        List.clear()
+        List.addItems(ItemList)
+
+        if List.count():
+            List.setCurrentItem(List.item(0))
+
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+        self.setupUi(self)
+
+        # HARKBird installed directory
+        self.HBDir = os.path.dirname(os.path.abspath(__file__)) + "/"
+
+        if args.directory is not None and os.path.isdir(args.directory):
+            BaseDir = args.directory
+            if BaseDir[-1] != "/":
+                BaseDir += "/"
+        else:
+            BaseDir = os.path.expanduser("~") + "/"
+
+        # Working directory for recording
+        self.RecWorkDir = BaseDir
+
+        # Working directory for localization
+        self.LocWorkDir = BaseDir
+
+        # Save directory for localization
+        self.LocSaveDir = BaseDir
+
+        # Parameter directory for localization
+        self.LocParamDir = BaseDir
+
+        # Working directory for analysis
+        self.AnaWorkDir = BaseDir
+
+        # Initialize parameter
+        self.LocParam = {}
+
+        # Validator
+        self.NatValidator = QtGui.QRegExpValidator(QtCore.QRegExp("[1-9][0-9]*$"), self)
+        self.IntValidator = QtGui.QRegExpValidator(QtCore.QRegExp("^(-?)[1-9][0-9]*$"), self)
+        self.StrValidator = QtGui.QRegExpValidator(QtCore.QRegExp('[^\\|/|:|\?|"|<|>|\|\*|\-|\+| |~|\$|\||@|&|]+'),
+                                                   self)
+        self.DevValidator = QtGui.QRegExpValidator(QtCore.QRegExp("((plughw|hw):[0-9]+,[0-9]+;)*"), self)
+        self.AngValidator = QtGui.QRegExpValidator(QtCore.QRegExp("([1-9][0-9]?$)|(1[0-7][0-9]$)|180"), self)
+
+        # Waiting events
+        self.SetRecSignals()
+        self.SetLocSignals()
+        self.SetAnaSignals()
+
+        # Initialize
+        self.InitRec()
+        self.InitLoc()
+        self.InitAna()
+
+    ####################RECORDING####################
+    def SetRecSignals(self):
+        self.RecFolderBrowser.clicked.connect(self.SetRecWorkDirFB)
+        self.RecFolderPath.editingFinished.connect(self.SetRecWorkDirFP)
+        self.RecReload.clicked.connect(self.SetRecWavFile)
+        self.RecFileName.setValidator(self.StrValidator)
+        self.RecPrefix.setValidator(self.StrValidator)
+        self.RecDevice.setValidator(self.DevValidator)
+        self.RecChannel.setValidator(self.NatValidator)
+        self.RecDuration.setValidator(self.NatValidator)
+        self.RecInterval.setValidator(self.NatValidator)
+        self.RecRecording.clicked.connect(self.Recording)
+        self.RecPlay.clicked.connect(self.Play)
+        self.RecDivide.clicked.connect(self.Divide)
+
+    def InitRec(self):
+        self.RecFolderPath.setText(self.RecWorkDir)
+        self.SetRecWavFile()
+
+    def SetRecWavFile(self):
+        ItemList = self.LoadWavFile(self.RecWorkDir)
+        self.SetItemToList(self.RecList, ItemList)
+
+    def SetRecWorkDirFB(self):
+        TmpWorkDir = self.SetDirFB(self.RecWorkDir, self.RecFolderPath)
+
+        self.RecWorkDir = TmpWorkDir
+        self.SetRecWavFile()
+
+    def SetRecWorkDirFP(self):
+        TmpWorkDir = self.SetDirFP(self.RecWorkDir, self.RecFolderPath)
+
+        self.RecWorkDir = TmpWorkDir
+        self.SetRecWavFile()
+
+    def Recording(self):
+        if not self.RecChannel.text():
+            QtGui.QMessageBox.critical(self, "Critical issue", "Set channel", QtGui.QMessageBox.Ok)
+            return 1
+
+        if not self.RecDuration.text():
+            Duration = 3600
+        else:
+            Duration = int(self.RecDuration.text())
+
+        if not self.RecInterval.text():
+            Interval = 0
+        else:
+            Interval = int(self.RecInterval.text())
+
+        if Interval > Duration:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Invalid interval", QtGui.QMessageBox.Ok)
+            return 1
+
+        if not self.RecPrefix.text():
+            Prefix = ""
+        else:
+            Prefix = self.RecPrefix.text() + "-"
+
+        if not self.RecFileName.text():
+            tdatetime = dt.now()
+            FileName = tdatetime.strftime("%Y%m%d-%H%M%S")
+        else:
+            FileName = self.RecFileName.text()
+            if FileName[-4:] == ".wav":
+                FileName = FileName[:-4]
+
+        if not self.RecDevice.text():
+            DeviceList = ["plughw:1,0"]
+        else:
+            DeviceList = self.RecDevice.text().split(";")
+
+        FileName = Prefix + FileName
+        Channel = self.RecChannel.text()
+
+        Number = 1
+        while Duration > 0:
+            ProcessList = []
+
+            if Interval == 0:
+                Interval = Duration
+                Duration = -1
+            elif Duration <= Interval:
+                Interval = Duration
+                Duration = -1
+            else:
+                Duration -= Interval
+
+            for i, d in enumerate(DeviceList):
+                FilePath = self.RecWorkDir + FileName + "-" + str(i) + "-{0:03d}".format(Number) + ".wav"
+                if os.name == "posix":
+                    Cmd = ["arecord", "-c", Channel, "-fS16_LE", "-r", "16000", "-D", d, FilePath, "-d",
+                           str(Interval)]
+                elif os.name == "nt":
+                    Cmd = ["sox", "-t", "waveaudio", "-c", Channel, "-r", "16000", "-d", FilePath, "trim", "0",
+                           str(Interval)]
+                Process = Tool.ExecuteProcess("Recording", Cmd, False)
+                ProcessList.append(Process)
+            Tool.WaitProcess(ProcessList)
+            Number += 1
+
+    def Play(self):
+        if not self.RecList.count():
+            QtGui.QMessageBox.critical(self, "Critical issue", "Choose wav file", QtGui.QMessageBox.Ok)
+            return 1
+
+        FileName = self.RecList.currentItem().text()
+        Cmd = ["sox", self.RecWorkDir + FileName]
+        if os.name == "posix":
+            Cmd += ["-d"]
+        elif os.name == "nt":
+            Cmd += ["-t", "waveaudio"]
+        Tool.ExecuteProcess("Play", Cmd, False)
+
+    def Divide(self):
+        if not self.RecList.count():
+            QtGui.QMessageBox.critical(self, "Critical issue", "Choose wav file", QtGui.QMessageBox.Ok)
+            return 1
+
+        FileName = self.RecList.currentItem().text()
+
+        Number, Unit, Ok = DivideDialog.GetDivideNumber(self)
+
+        if not Ok:
+            return 0
+
+        if Unit == "seconds":
+            Segment = Number
+        elif Unit == "pieces":
+            Length = Tool.GetLength(self.RecWorkDir + FileName)
+            Segment = Length / Number
+
+        Cmd = ["sox", self.RecWorkDir + FileName, self.RecWorkDir + FileName, "trim", "0", str(Segment), ":", "newfile",
+               ":", "restart"]
+        Tool.ExecuteProcess("Divide", Cmd, True)
+
+    ####################LOCALIZATION####################
+    def SetLocSignals(self):
+        self.LocWorkFolderBrowser.clicked.connect(self.SetLocWorkDirFB)
+        self.LocWorkFolderPath.editingFinished.connect(self.SetLocWorkDirFP)
+        self.LocWorkDirReload.clicked.connect(self.SetLocWavFile)
+        self.LocParamFolderBrowser.clicked.connect(self.LoadLocParam)
+        self.LocParamSave.clicked.connect(self.SaveLocParam)
+        self.LocParamTable.cellChanged.connect(self.UpdateLocParam)
+        self.LocSaveFolderBrowser.clicked.connect(self.SetLocSaveDirFB)
+        self.LocSaveFolderPath.editingFinished.connect(self.SetLocSaveDirFP)
+        self.LocGain.setValidator(self.IntValidator)
+        self.LocLocalize.clicked.connect(self.Localize)
+
+    def InitLoc(self):
+        self.LocWorkFolderPath.setText(self.LocWorkDir)
+        self.SetLocWavFile()
+        self.LoadLocParam(self.HBDir + "localization/parameter/default.json")
+        self.LocSaveFolderPath.setText(self.LocSaveDir)
+
+    def SetLocWavFile(self):
+        ItemList = self.LoadWavFile(self.LocWorkDir)
+        self.SetItemToList(self.LocWorkDirList, ItemList)
+
+    def SetLocWorkDirFB(self):
+        TmpWorkDir = self.SetDirFB(self.LocWorkDir, self.LocWorkFolderPath)
+
+        self.LocWorkDir = TmpWorkDir
+        self.SetLocWavFile()
+
+    def SetLocWorkDirFP(self):
+        TmpWorkDir = self.SetDirFP(self.LocWorkDir, self.LocWorkFolderPath)
+
+        self.LocWorkDir = TmpWorkDir
+        self.SetLocWavFile()
+
+    def UpdateLocParam(self, Row, Column):
+        if Column == 0:
+            return 0
+
+        Parameter = self.LocParamTable.item(Row, 0).text()
+        Value = str(self.LocParamTable.item(Row, Column).text())
+        self.LocParam[Parameter][Column - 1] = Value
+
+    def SetLocParam(self, Parameter):
+        self.LocParam = Parameter
+        self.LocParamTable.clear()
+
+        self.LocParamTable.setRowCount(len(self.LocParam))
+        self.LocParamTable.setHorizontalHeaderLabels(["Parameter", "Marker", "Value"])
+        self.LocParamTable.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.LocParamTable.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+
+        for i, (p, v) in enumerate(self.LocParam.iteritems()):
+            Item = QtGui.QTableWidgetItem(p)
+            Item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.LocParamTable.setItem(i, 0, Item)
+
+            Item = QtGui.QTableWidgetItem(v[0])
+            if p == "Network":
+                Item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.LocParamTable.setItem(i, 1, Item)
+
+            Item = QtGui.QTableWidgetItem(v[1])
+            self.LocParamTable.setItem(i, 2, Item)
+
+    def LoadLocParam(self, FileName=None):
+        if FileName is None:
+            (FileName, Ext) = QtGui.QFileDialog.getOpenFileName(self, "Choose parameter file", self.LocParamDir,
+                                                                filter="*.json")
+        elif not os.path.isfile(FileName):
+            QtGui.QMessageBox.critical(self, "Critical issue", "Invalid filename", QtGui.QMessageBox.Ok)
+            return 1
+
+        FileName = str(FileName)
+        if not FileName:
+            return 0
+
+        try:
+            f = open(FileName)
+            Parameter = json.load(f)
+            f.close()
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot load file\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            return 1
+
+        try:
+            self.SetLocParam(Parameter)
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot initialize parameter\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            return 1
+        else:
+            self.LocParamDir = os.path.dirname(FileName)
+            self.LocParamFolderPath.setText(FileName)
+            return 0
+
+    def SaveLocParam(self):
+        (FileName, Ext) = QtGui.QFileDialog.getSaveFileName(self, "Choose save directory and filename",
+                                                            self.LocParamDir, filter="*.json")
+        FileName = str(FileName)
+        if not FileName:
+            return 0
+        elif (FileName[-5:] != ".json"):
+            FileName += ".json"
+
+        try:
+            f = open(FileName, "w")
+            json.dump(self.LocParam, f, indent=4)
+            f.close()
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot save file\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            return 1
+        else:
+            self.LocParamDir = os.path.dirname(FileName)
+            self.LocParamFolderPath.setText(FileName)
+            return 0
+
+    def ModNetFile(self):
+        TempName = self.HBDir + "localization/network/" + self.LocParam["Network"][1]
+
+        try:
+            Template = open(TempName)
+            OutFile = open(self.HBDir + "localization/network/network.n", "w")
+
+            for line in Template:
+                for p, v in self.LocParam.iteritems():
+                    if p == "Network":
+                        continue
+                    line = line.replace(v[0], v[1])
+
+                OutFile.write(line)
+
+            Template.close()
+            OutFile.close()
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot create network file\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            raise
+
+    def SetLocSaveDirFB(self):
+        TmpWorkDir = self.SetDirFB(self.LocSaveDir, self.LocSaveFolderPath)
+        self.LocSaveDir = TmpWorkDir
+
+    def SetLocSaveDirFP(self):
+        TmpWorkDir = self.SetDirFP(self.LocSaveDir, self.LocSaveFolderPath)
+        self.LocSaveDir = TmpWorkDir
+
+    def Localize(self):
+        if not self.LocWorkDirList.selectedItems():
+            QtGui.QMessageBox.critical(self, "Critical issue", "Choose wav file", QtGui.QMessageBox.Ok)
+            return 1
+
+        try:
+            self.ModNetFile()
+            f = open(self.HBDir + "localization/parameter/parameter.json", "w")
+            json.dump(self.LocParam, f, indent=4)
+            f.close()
+        except Exception as e:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Cannot start localization\n" + str(e.message),
+                                       QtGui.QMessageBox.Ok)
+            return 1
+        else:
+            for Item in self.LocWorkDirList.selectedItems():
+                Cmd = ["python", self.HBDir + "localization/WaveSeparate"]
+                if self.LocConversion.isChecked():
+                    Cmd += ["-c"]
+
+                if self.LocGain.text():
+                    Cmd += ["-g", self.LocGain.text()]
+
+                FileName = Item.text()
+                Cmd += ["-d", self.LocSaveDir, "-f", self.LocWorkDir + FileName, "-tf", self.LocParam["TFNAME"][1]]
+                Tool.ExecuteProcess("Localization", Cmd, True)
+            return 0
+
+    ####################ANALYSIS####################
+    def SetAnaSignals(self):
+        self.AnaFolderBrowser.clicked.connect(self.SetAnaWorkDirFB)
+        self.AnaFolderPath.editingFinished.connect(self.SetAnaWorkDirFP)
+        self.AnaReload.clicked.connect(self.SetAnaLocalizedFolder)
+        self.AnaPdfDivNum.setValidator(self.NatValidator)
+        self.AnaDegree.setValidator(self.AngValidator)
+        self.AnaExportFiles.clicked.connect(self.ExportFiles)
+        self.AnaAnnotation.clicked.connect(self.Annotation)
+
+    def InitAna(self):
+        self.AnaFolderPath.setText(self.AnaWorkDir)
+        self.SetAnaLocalizedFolder()
+
+    def SetAnaLocalizedFolder(self):
+        ItemList = self.LoadLocalizedFolder(self.AnaWorkDir)
+        self.SetItemToList(self.AnaList, ItemList)
+
+    def SetAnaWorkDirFB(self):
+        TmpWorkDir = self.SetDirFB(self.AnaWorkDir, self.AnaFolderPath)
+
+        self.AnaWorkDir = TmpWorkDir
+        self.SetAnaLocalizedFolder()
+
+    def SetAnaWorkDirFP(self):
+        TmpWorkDir = self.SetDirFP(self.AnaWorkDir, self.AnaFolderPath)
+
+        self.AnaWorkDir = TmpWorkDir
+        self.SetAnaLocalizedFolder()
+
+    def ExportFiles(self):
+        if not self.AnaList.selectedItems():
+            QtGui.QMessageBox.critical(self, "Critical issue", "Choose folder", QtGui.QMessageBox.Ok)
+            return 1
+
+        for Item in self.AnaList.selectedItems():
+            FolderName = self.AnaWorkDir + Item.text() + "/"
+
+            try:
+                SourceWav = Tool.LoadSourceWav(self, FolderName)
+            except Exception as e:
+                QtGui.QMessageBox.critical(self, "Critical issue", "Cannot load source wav\n" + str(e.message),
+                                           QtGui.QMessageBox.Ok)
+                return 1
+
+            if not self.AnaPdfDivNum.text():
+                PdfDivNum = "1"
+            else:
+                PdfDivNum = self.AnaPdfDivNum.text()
+
+            if not self.AnaDegree.text():
+                Degree = "20"
+            else:
+                Degree = self.AnaDegree.text()
+
+            Cmd = ["python", self.HBDir + "analysis/ExportFiles", "-f", FolderName, "-s", SourceWav, "-n", PdfDivNum,
+                   "-d", Degree]
+            Tool.ExecuteProcess("Export files", Cmd, True)
+        return 0
+
+    def Annotation(self):
+        if not self.AnaList.selectedItems():
+            QtGui.QMessageBox.critical(self, "Critical issue", "Choose folder", QtGui.QMessageBox.Ok)
+            return 1
+        elif (len(self.AnaList.selectedItems()) == 1):
+            FolderName = self.AnaWorkDir + self.AnaList.selectedItems()[0].text() + "/"
+            Cmd = ["python", self.HBDir + "analysis/Annotation", "-f", FolderName]
+            subprocess.Popen(Cmd)
+            return 0
+
+        else:
+            QtGui.QMessageBox.critical(self, "Critical issue", "Too many folders", QtGui.QMessageBox.Ok)
+            return 1
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="HARKBird")
+    parser.add_argument("-d", "--directory", type=str, help="directory")
+    args = parser.parse_args()
+
+    app = QtGui.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())

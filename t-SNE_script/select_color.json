@@ -1,0 +1,10 @@
+{
+	"S0":"Red", 
+	"S1":"Green", 
+	"S2":"Blue",
+	"S3":"Cyan",
+	"S4":"Magenta",
+	"S5":"Yellow",
+	"None":"Gray",
+	"crow":"Orange"
+}

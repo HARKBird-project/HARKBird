@@ -1,0 +1,30 @@
+{
+    "Network": [
+        "", 
+        "default_nosavewav.n"
+    ], 
+    "TFNAME": [
+        "#TFNAME#", 
+        "tamago_rectf.zip"
+    ], 
+    "PERIOD": [
+        "#PERIOD#", 
+        "50"
+    ], 
+    "THRESH": [
+        "#THRESH#", 
+        "29.50"
+    ], 
+    "MICNO": [
+        "#MICNO#", 
+        "0 1 2 3 4 5 6 7"
+    ], 
+    "LOWER_BOUND_FREQUENCY": [
+        "#LBF#", 
+        "2200"
+    ], 
+    "NUM_SOURCE": [
+        "#NS#", 
+        "3"
+    ]
+}
